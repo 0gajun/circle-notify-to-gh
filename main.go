@@ -31,20 +31,18 @@ func main() {
 
 	owner, repo, prNo := parse(prURL)
 
-	ctx := context.Background()
-
-	oauthClient := oauth2.NewClient(ctx, oauth2.StaticTokenSource(
+	oauthClient := oauth2.NewClient(nil, oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: githubToken},
 	))
 
 	client := github.NewClient(oauthClient)
 
-	if hasCommented(ctx, client, msg, owner, repo, prNo) {
+	if hasCommented(client, msg, owner, repo, prNo) {
 		log.Println("Already notified")
 		return
 	}
 
-	createComment(ctx, client, msg, owner, repo, prNo)
+	createComment(client, msg, owner, repo, prNo)
 }
 
 func parse(prURL string) (string, string, int) {
@@ -63,8 +61,9 @@ func parse(prURL string) (string, string, int) {
 	return string(submatched[1]), string(submatched[2]), prNo
 }
 
-func hasCommented(ctx context.Context, client *github.Client, msg, owner, repo string, prNo int) bool {
+func hasCommented(client *github.Client, msg, owner, repo string, prNo int) bool {
 	var currentPage = 1
+	ctx := context.Background()
 	for {
 		opt := &github.IssueListCommentsOptions{
 			ListOptions: github.ListOptions{PerPage: 100, Page: currentPage},
@@ -88,10 +87,10 @@ func hasCommented(ctx context.Context, client *github.Client, msg, owner, repo s
 	return false
 }
 
-func createComment(ctx context.Context, client *github.Client, msg, owner, repo string, prNo int) {
-
+func createComment(client *github.Client, msg, owner, repo string, prNo int) {
 	comment := &github.IssueComment{Body: &msg}
 
+	ctx := context.Background()
 	if _, _, err := client.Issues.CreateComment(ctx, owner, repo, prNo, comment); err != nil {
 		log.Fatalf("failed to post comment : %v\n", err)
 	}
